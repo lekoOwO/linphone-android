@@ -1,0 +1,75 @@
+name: Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t linphone-android-ci -f docker-files/bc-dev-android-33 .
+
+      - name: Write keystore.properties
+        run: |
+          echo storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} > keystore.properties
+          echo keyPassword=${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} >> keystore.properties
+          echo keyAlias=${{ secrets.ANDROID_KEYSTORE_KEY_ALIAS }} >> keystore.properties
+          echo storeFile=release-key.keystore >> keystore.properties
+
+      - name: Write google-services.json
+        run: |
+          echo '${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}' > app/google-services.json
+
+      - name: Write keystore file
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_FILE }}" | base64 -d > app/release-key.keystore
+          mkdir -p app/.android
+          echo '/u3+7QAAAAIAAAABAAAAAQAPYW5kcm9pZGRlYnVna2V5AAABl3lOKAoAAAUBMIIE/TAOBgorBgEEASoCEQEBBQAEggTptZMft8H7+QLoYIkpQm85R93K9sN7jFV7v/RC/iWeqshrRbyfFWqk1VofCQvk9i120LwFvEtdRgvbtscEgbJZX+hEGwLOG/v1OiAYlqTk6KffouRhCpJdULYS1STOGg2YbF+dK4HuWz/b7Bn5WfYUt2O2GCB3WtfLT7LfF0LXrkXLFQtcMoFYOLR4oISngj/e3qwJdILWiS7dTmeNNCJHDY08Uz6Vny+o4yVDDCzfO0RVr2NkgCjj0jf+ga/rdu3Xa2YQ0tSPXF4yU0cU1+IZ8rYkLVCD4+rINGddBoqEyMKEaGsjViEmt6cbL4/p6hNGs/uEF/juYq9UMLg0+fO0DX4SkJXGyXJFmTAGRpwj+0yD+Rs86IZ1tJ9E2m7Lz4EK+Yl6I0cHRxLqXKQY3Fv6F05jxdfn4M0Hv8x4d0L+eYD3ZEA0/doM/hMZF6e8LJqmUqT7oq/BEZ57khq09L1KjJuIbCeZw3l8SgkQsUFDKXQ9My4T71mYDsE9Um8wQ95LBv2v5KUgno48p+ZCDYAjaVJ11THMg0FYQiZ+emOkuBBg3QHHUwne5KfOAYyTstpeGSz+mpzccEWJ61XJhITm+mBotIjUrotQLLjuMbToiXocP2W2vFAUZiSM+VFYxEUOeqAR9D/p/ldreK/W8nREBBxclZZXp40yNW0hZ/hr1mDijwx+ViPJjGHwRBZoonW9vKNCXagwGBUoGEGSkU3h2QlUBatQofVM8kBtLClplWc2S+QyEd2gpiXupQZFheF4LjgCVKn6dDT6p7GlSmZJLFpbL76ntc2lH/QnmgV2dZjGOiYq8nI6Kk/ZV61Jrv6S2WPl6ze6CE2SknJFiT6vZPZqDkk2nYotT8wDlSvMOOP0EAeZk3syZv1F0auFXdg80G906wxYbDuVbfz3yZeFVYHiFKgDALeotEz/wRGSrA5/XuBkYiZtC6qce4IXPRCH3WL1pCjKbf1/YJKWPMmyjy/Y2oR6hgzL3MiUehzBYO4oV9NacW0TzpK78O2J+a7kLR3dXhuPUs831yYuutEGI/Yei0AdYhMxmkX7JOEisUg3/nGyHWY43eb3WIgwC+hRkI5YHKbTDkkzbyBy4xhWRzNAvh9dduzPtwtR8VYd+5uZuJr/w4hO+hs8hjxQr8l+gZRCUWm7JcW5nMZKzwch09Sqv1tELBq4Je93oZymDXykXtpgJAcf4SKPns/W7Nnre89syZre/AsxZx4DLUq2bf18eQUEY3qbTWtGPohIxpfW1UJxeNi31cGMg4COFlUrtrgWchizGqmZdb+1Ukf6PKmPUz4nqQNDN0AQHVBb9/7RfhLfVwDY5CMzJkR6l1YAbbrYKXRxVeHcHDd2iqSvmGV1KV/oJzthM9ygCHQcnfbBmyPIT3Ij541awX2NbvGMexsRYHb5zSbAue1AYSAW8UbeO3HDdjjUECMV5n0tvbJrVnlOXHRDisaumkULgEtNXZ7d/0jpl2k9fOVCFPM1AlqsawulqSa8/WWmCvQzQfFIv6UY18TE2uQdrXAAZ1vgVNLMCO06HhTTrNEJESkwIz7ODTgRXte82pxTO1aSYBnRQI4BLwYrxq1nJxtaM5AQcokhYM2oPuGm8cucOXdLyYnZzyasT7A2CnGl0qwTt2Co35X/vPoCXzCcvHSwpto3uV9XmuWqs8kLAAAAAQAFWC41MDkAAAMTMIIDDzCCAfegAwIBAgIECZd65DANBgkqhkiG9w0BAQsFADA3MQswCQYDVQQGEwJVUzEQMA4GA1UEChMHQW5kcm9pZDEWMBQGA1UEAxMNQW5kcm9pZCBEZWJ1ZzAgFw0yNTA2MTYxNTE0MTRaGA8yMDUyMTEwMTE1MTQxNFowNzELMAkGA1UEBhMCVVMxEDAOBgNVBAoTB0FuZHJvaWQxFjAUBgNVBAMTDUFuZHJvaWQgRGVidWcwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCFXwSnPMqd3mNY1IgStjySlAemNLFcYIqT5gv31+nY0j8OoPDOoku3t7KyE07yxxhp68FyltoN8uSSDMafZzCY3/cOK0wALbRvZIUilBOMHgVuR15No6sw432+Rvzouo7HOBrC+w48V6c4ZXMUVyMuqTko31kQ4TwvwKl+fCNEO0rxZMeC9scSDagW/cKCXHvR5LD+qg/Z7eZ/Lq/E+C1g3h/zVkkTpA7XY6Gg0Z359NgbPnydtjhnZVUz4Ilj9QXYCCXFIetEOCpHy5xCQDuTiqCGDEpW8LdRQX8vRGOruqu+y8PbMLzDKnCumHuXduNX9acx/sUV3kzAgVXkoLZlAgMBAAGjITAfMB0GA1UdDgQWBBQIcxQAe3UK9ViK29dksMboO+aPnDANBgkqhkiG9w0BAQsFAAOCAQEAVBerV8htja7LHX3KWzrgMdztBRhptX5onQz7tksAXFq1mW5kDf6Nl8E7GXyYmSYnJ7/IScCqG1tbrKXbaDziZZWTaZyLBsGtuL1Pk7fUnk1mNiylG3H5Vlfx9KIrWRlnq8b+rrO73PkNEFG3YZ078zx6dSoIzRS6P+7j9MTn/JcER9Po16V8xLvghtfQEadvRTVQdW7tjDs51x3h7niTpiJWBuqkeq4hsl/38V2+kqjoLNGm7TT+GxIaPBEJf7Q5f+UbebLJ8wiAk07xQWN+pSMrs0bWFVvdE5CdisXWpG7KYO3LAJYSF60OfARIFR5AFIhGYBUnbw8YxhRvv/Jo/6Bj9Yg0WrDcvfdcVcq8iyzxLNbi'  | base64 -d > app/.android/debug.keystore
+
+      - name: Write settings.gradle.kts if provided
+        if: ${{ env.ANDROID_SETTINGS_GRADLE && env.ANDROID_SETTINGS_GRADLE != '' }}
+        env:
+          ANDROID_SETTINGS_GRADLE: ${{ secrets.ANDROID_SETTINGS_GRADLE }}
+        run: |
+          echo "$ANDROID_SETTINGS_GRADLE" > settings.gradle.kts
+
+      - name: Run build in Docker container
+        run: |
+          sudo chown -R 1000:1000 ${{ github.workspace }}
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            linphone-android-ci bash -c "\
+              mkdir -p /home/bc/.android && \
+              cp app/.android/debug.keystore /home/bc/.android/debug.keystore && \
+              git config --file /workspace/.gitconfig --add safe.directory /workspace && \
+              export GIT_CONFIG_GLOBAL=/workspace/.gitconfig && \
+              ./gradlew app:dependencies | grep org.linphone && \
+              ./gradlew clean && \
+              ./gradlew assembleRelease"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linphone-android-apk
+          path: app/build/outputs/apk/release/linphone-android-release-*.apk
+          if-no-files-found: warn
